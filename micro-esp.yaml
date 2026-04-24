@@ -1,0 +1,104 @@
+esphome:
+  name: micro-esp
+  friendly_name: Micro ESP
+  
+esp32:
+  board: esp32-c3-devkitm-1
+  framework:
+    type: arduino
+
+logger:
+
+api:
+  services:
+    - service: update_microbit_display
+      variables:
+        current_val: string
+      then:
+        - uart.write: 
+            id: uart_bus
+            data: !lambda |-
+              // Append \n so the micro:bit knows the message is complete
+              std::string str = current_val + "\n";
+              return std::vector<uint8_t>(str.begin(), str.end());
+
+ota:
+- platform: esphome
+
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_password
+  fast_connect: true 
+  power_save_mode: none
+  ap:
+    ssid: "micro-esp"
+    password: "CHANGE_ME"
+
+captive_portal:
+
+uart:
+  - id: uart_bus
+    tx_pin: GPIO21 #P1 On Micro:Bit
+    rx_pin: GPIO20 #P0 On Micro:Bit
+    baud_rate: 115200
+    debug:
+      dummy_receiver: true
+      after:
+        delimiter: "\n"
+      sequence:
+        - lambda: |-
+            UARTDebug::log_string(direction, bytes);
+            std::string msg(bytes.begin(), bytes.end());
+            
+            // Look for keywords anywhere in the string to be safe
+            if (msg.find("BTN_A_DN") != std::string::npos) id(button_a).publish_state(true);
+            else if (msg.find("BTN_A_UP") != std::string::npos) id(button_a).publish_state(false);
+            else if (msg.find("BTN_B_DN") != std::string::npos) id(button_b).publish_state(true);
+            else if (msg.find("BTN_B_UP") != std::string::npos) id(button_b).publish_state(false);
+
+button:
+  - platform: template
+    name: "UART Connection Test"
+    on_press:
+      then:
+        - uart.write: "INC\n"
+
+binary_sensor:
+  - platform: template
+    name: "Microbit Button A"
+    id: button_a
+  - platform: template
+    name: "Microbit Button B"
+    id: button_b
+
+number:
+  - platform: template
+    name: "Microbit Display Number"
+    id: microbit_disp_num
+    min_value: 0
+    max_value: 99
+    step: 1
+    mode: box
+    optimistic: true
+    on_value:
+      then:
+        - uart.write:
+            id: uart_bus
+            data: !lambda |-
+              // Sends "DISP:7" if you set the number to 7
+              std::string str = "DISP:" + std::to_string((int)x) + "\n";
+              return std::vector<uint8_t>(str.begin(), str.end());
+
+text:
+  - platform: template
+    name: "Microbit Scroll Text"
+    id: microbit_scroll
+    mode: text
+    optimistic: true
+    on_value:
+      then:
+        - uart.write:
+            id: uart_bus
+            data: !lambda |-
+              std::string str = "MSG:" + x + "\n";
+              return std::vector<uint8_t>(str.begin(), str.end());

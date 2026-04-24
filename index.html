@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Micro:bit Master YAML Builder</title>
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; background: #121212; color: #eee; display: flex; flex-direction: column; align-items: center; padding: 20px; user-select: none; }
+        h2 { margin-bottom: 20px; color: #ff4757; }
+        .grid { display: grid; grid-template-columns: repeat(5, 50px); gap: 8px; background: #222; padding: 15px; border-radius: 10px; border: 1px solid #444; }
+        .pixel { width: 50px; height: 50px; background: #333; border-radius: 4px; cursor: pointer; border: none; transition: 0.1s; }
+        .pixel.on { background: #ff4757; box-shadow: 0 0 15px #ff4757; }
+        .panels { display: flex; gap: 20px; width: 100%; max-width: 950px; margin-top: 25px; }
+        .panel { flex: 1; background: #1e1e1e; padding: 20px; border-radius: 10px; border: 1px solid #333; display: flex; flex-direction: column; }
+        textarea { width: 100%; height: 320px; background: #000; color: #2ed573; border: 1px solid #2ed573; padding: 12px; font-family: 'Consolas', monospace; font-size: 13px; border-radius: 5px; box-sizing: border-box; resize: none; }
+        .mode-toggle { display: flex; background: #333; border-radius: 8px; margin-bottom: 15px; overflow: hidden; padding: 4px; }
+        .mode-toggle button { flex: 1; padding: 10px; border: none; background: transparent; color: #888; cursor: pointer; font-weight: bold; transition: 0.3s; }
+        .mode-toggle button.active { background: #2ed573; color: black; border-radius: 6px; }
+        .input-group { margin-bottom: 15px; }
+        label { display: block; font-size: 0.8em; margin-bottom: 5px; color: #888; }
+        input { width: 100%; padding: 10px; background: #333; border: 1px solid #555; color: white; border-radius: 5px; box-sizing: border-box; }
+        .btn-clr { background: #ff4757; color: white; margin-top: 15px; padding: 12px; border-radius: 5px; border: none; cursor: pointer; font-weight: bold; }
+        .copy-btn { background: #70a1ff; color: black; margin-top: 12px; padding: 12px; border-radius: 5px; border: none; cursor: pointer; font-weight: bold; }
+        .copy-btn.copied { background: #2ed573; }
+    </style>
+</head>
+<body>
+
+    <h2>Micro:bit Master YAML Builder</h2>
+    
+    <div class="grid" id="grid"></div>
+
+    <div class="panels">
+        <div class="panel">
+            <h3>Mode Selection</h3>
+            <div class="mode-toggle">
+                <button id="btnDev" class="active" onclick="setMode('dev')">DEVELOPER (Single)</button>
+                <button id="btnSeq" onclick="setMode('seq')">SEQUENCE (Script)</button>
+            </div>
+
+            <div class="input-group">
+                <label>Scrolling Text (MSG:)</label>
+                <input type="text" id="txtInput" placeholder="Hello..." oninput="genText()">
+            </div>
+            <div class="input-group">
+                <label>Show Number (DISP:)</label>
+                <input type="number" id="numInput" placeholder="0-99" oninput="genNum()">
+            </div>
+            <button class="btn-clr" onclick="resetGrid()">CLEAR SCREEN (CLR)</button>
+        </div>
+
+        <div class="panel">
+            <h3 id="outTitle">Developer Action</h3>
+            <textarea id="yamlOutput" readonly></textarea>
+            <button class="copy-btn" id="copyBtn" onclick="copyToClipboard()">COPY YAML</button>
+        </div>
+    </div>
+
+    <script>
+        const grid = document.getElementById('grid');
+        const yamlOutput = document.getElementById('yamlOutput');
+        const copyBtn = document.getElementById('copyBtn');
+        const outTitle = document.getElementById('outTitle');
+        let currentMode = 'dev'; 
+        let isDrawing = false;
+        let drawMode = true;
+
+        for (let y = 0; y < 5; y++) {
+            for (let x = 0; x < 5; x++) {
+                const pix = document.createElement('div');
+                pix.className = 'pixel';
+                pix.dataset.x = x; pix.dataset.y = y;
+                pix.onmousedown = () => { isDrawing = true; drawMode = !pix.classList.contains('on'); togglePixel(pix); };
+                pix.onmouseenter = () => { if (isDrawing) togglePixel(pix); };
+                grid.appendChild(pix);
+            }
+        }
+        window.onmouseup = () => isDrawing = false;
+
+        function setMode(m) {
+            currentMode = m;
+            document.getElementById('btnDev').className = (m === 'dev' ? 'active' : '');
+            document.getElementById('btnSeq').className = (m === 'seq' ? 'active' : '');
+            outTitle.innerText = (m === 'dev' ? 'Developer Action' : 'Sequence Actions');
+            updateYaml();
+        }
+
+        function togglePixel(pix) {
+            if (drawMode) pix.classList.add('on'); else pix.classList.remove('on');
+            updateYaml();
+        }
+
+        function updateYaml() {
+            const active = document.querySelectorAll('.pixel.on');
+            let output = "";
+
+            if (currentMode === 'dev') {
+                const last = Array.from(active).pop();
+                const val = last ? `PX:${last.dataset.x},${last.dataset.y},1` : "CLR";
+                output = `action: esphome.micro_esp_update_microbit_display\ndata:\n  current_val: "${val}"`;
+            } else {
+                output = "actions:\n  - sequence:\n      - action: esphome.micro_esp_update_microbit_display\n        data:\n          current_val: CLR\n";
+                active.forEach(p => {
+                    output += `      - action: esphome.micro_esp_update_microbit_display\n        data:\n          current_val: "PX:${p.dataset.x},${p.dataset.y},1"\n`;
+                });
+            }
+            yamlOutput.value = output.trim();
+        }
+
+        function genText() { buildCustom(`MSG:${document.getElementById('txtInput').value || " "}`); }
+        function genNum() { buildCustom(`DISP:${document.getElementById('numInput').value || "0"}`); }
+        
+        function buildCustom(val) {
+            if (currentMode === 'dev') {
+                yamlOutput.value = `action: esphome.micro_esp_update_microbit_display\ndata:\n  current_val: "${val}"`;
+            } else {
+                yamlOutput.value = `actions:\n  - sequence:\n      - action: esphome.micro_esp_update_microbit_display\n        data:\n          current_val: ${val}`;
+            }
+        }
+
+        function resetGrid() {
+            document.querySelectorAll('.pixel').forEach(p => p.classList.remove('on'));
+            updateYaml();
+        }
+
+        function copyToClipboard() {
+            yamlOutput.select();
+            document.execCommand('copy');
+            copyBtn.textContent = "COPIED!";
+            copyBtn.classList.add('copied');
+            setTimeout(() => {
+                copyBtn.textContent = "COPY YAML";
+                copyBtn.classList.remove('copied');
+            }, 1200);
+        }
+
+        updateYaml();
+    </script>
+</body>
+</html>
