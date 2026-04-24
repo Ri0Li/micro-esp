@@ -3,3 +3,10 @@
 # You can modify this file to suit your needs.
 /.esphome/
 /secrets.yaml
+
+# wrangler files
+.wrangler
+.dev.vars*
+!.dev.vars.example
+.env*
+!.env.example
