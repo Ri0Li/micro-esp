@@ -2,16 +2,34 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Micro:bit Master YAML Builder</title>
+    <title>Micro:Bit YAML Builder</title>
     <style>
-        body { font-family: 'Segoe UI', sans-serif; background: #121212; color: #eee; display: flex; flex-direction: column; align-items: center; padding: 20px; user-select: none; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Helvetica Neue", Helvetica, Arial, sans-serif; background: #121212; color: #eee; display: flex; flex-direction: column; align-items: center; padding: 20px; user-select: none; }
         h2 { margin-bottom: 20px; color: #ff4757; }
+        .repo-link {
+            margin-top: 20px;
+            background: #24292f;
+            color: #f0f6fc;
+            text-decoration: none;
+            font-size: 0.92rem;
+            font-weight: 600;
+            padding: 10px 14px;
+            border-radius: 8px;
+            border: 1px solid #3d444d;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            transition: background 0.15s ease, transform 0.08s ease;
+        }
+        .repo-link:hover { background: #30363d; }
+        .repo-link:active { transform: translateY(1px); }
+        .repo-link svg { width: 16px; height: 16px; fill: currentColor; }
         .grid { display: grid; grid-template-columns: repeat(5, 50px); gap: 8px; background: #222; padding: 15px; border-radius: 10px; border: 1px solid #444; }
         .pixel { width: 50px; height: 50px; background: #333; border-radius: 4px; cursor: pointer; border: none; transition: 0.1s; }
         .pixel.on { background: #ff4757; box-shadow: 0 0 15px #ff4757; }
-        .panels { display: flex; gap: 20px; width: 100%; max-width: 950px; margin-top: 25px; }
+        .panels { display: flex; gap: 20px; width: 100%; max-width: 950px; margin: 25px auto 0; justify-content: center; align-items: stretch; }
         .panel { flex: 1; background: #1e1e1e; padding: 20px; border-radius: 10px; border: 1px solid #333; display: flex; flex-direction: column; }
-        textarea { width: 100%; height: 320px; background: #000; color: #2ed573; border: 1px solid #2ed573; padding: 12px; font-family: 'Consolas', monospace; font-size: 13px; border-radius: 5px; box-sizing: border-box; resize: none; }
+        textarea { width: 100%; height: 320px; background: #06090f; color: #d6e7ff; border: 1px solid #3b5477; padding: 14px; font-family: ui-monospace, SFMono-Regular, SF Mono, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; font-size: 13px; line-height: 1.55; border-radius: 6px; box-sizing: border-box; resize: none; white-space: pre; }
         .mode-toggle { display: flex; background: #333; border-radius: 8px; margin-bottom: 15px; overflow: hidden; padding: 4px; }
         .mode-toggle button { flex: 1; padding: 10px; border: none; background: transparent; color: #888; cursor: pointer; font-weight: bold; transition: 0.3s; }
         .mode-toggle button.active { background: #2ed573; color: black; border-radius: 6px; }
@@ -21,11 +39,36 @@
         .btn-clr { background: #ff4757; color: white; margin-top: 15px; padding: 12px; border-radius: 5px; border: none; cursor: pointer; font-weight: bold; }
         .copy-btn { background: #70a1ff; color: black; margin-top: 12px; padding: 12px; border-radius: 5px; border: none; cursor: pointer; font-weight: bold; }
         .copy-btn.copied { background: #2ed573; }
+
+        @media (max-width: 980px) {
+            body { padding: 16px; }
+            .panels { flex-direction: column; max-width: 640px; gap: 14px; margin-left: auto; margin-right: auto; align-items: center; }
+            .panel { width: 92vw; max-width: 620px; }
+        }
+
+        @media (max-width: 640px) {
+            h2 { font-size: 1.2rem; margin-bottom: 14px; text-align: center; }
+            .grid { grid-template-columns: repeat(5, 42px); gap: 7px; padding: 12px; }
+            .pixel { width: 42px; height: 42px; border-radius: 6px; }
+            .panel { padding: 14px; width: 90vw; max-width: 560px; }
+            .mode-toggle { flex-direction: column; gap: 6px; background: transparent; padding: 0; }
+            .mode-toggle button { background: #333; border-radius: 6px; }
+            textarea { height: 260px; font-size: 12px; }
+            .btn-clr, .copy-btn { width: 100%; }
+        }
+
+        @media (max-width: 420px) {
+            body { padding: 12px; }
+            .grid { grid-template-columns: repeat(5, 36px); gap: 6px; padding: 10px; }
+            .pixel { width: 36px; height: 36px; }
+            input, .btn-clr, .copy-btn { padding: 10px; }
+            textarea { height: 220px; }
+        }
     </style>
 </head>
 <body>
 
-    <h2>Micro:bit Master YAML Builder</h2>
+    <h2>Micro:Bit YAML Builder</h2>
     
     <div class="grid" id="grid"></div>
 
@@ -39,11 +82,11 @@
 
             <div class="input-group">
                 <label>Scrolling Text (MSG:)</label>
-                <input type="text" id="txtInput" placeholder="Hello..." oninput="genText()">
+                <input type="text" id="txtInput" placeholder="Hello world" oninput="genText()">
             </div>
             <div class="input-group">
                 <label>Show Number (DISP:)</label>
-                <input type="number" id="numInput" placeholder="0-99" oninput="genNum()">
+                <input type="number" id="numInput" placeholder="69" oninput="genNum()">
             </div>
             <button class="btn-clr" onclick="resetGrid()">CLEAR SCREEN (CLR)</button>
         </div>
@@ -96,7 +139,7 @@
             if (currentMode === 'dev') {
                 const last = Array.from(active).pop();
                 const val = last ? `PX:${last.dataset.x},${last.dataset.y},1` : "CLR";
-                output = `action: esphome.micro_esp_update_microbit_display\ndata:\n  current_val: "${val}"`;
+                output = `# Home Assistant Service Call\naction: esphome.micro_esp_update_microbit_display\ndata:\n  current_val: "${val}"`;
             } else {
                 output = "actions:\n  - sequence:\n      - action: esphome.micro_esp_update_microbit_display\n        data:\n          current_val: CLR\n";
                 active.forEach(p => {
@@ -111,7 +154,7 @@
         
         function buildCustom(val) {
             if (currentMode === 'dev') {
-                yamlOutput.value = `action: esphome.micro_esp_update_microbit_display\ndata:\n  current_val: "${val}"`;
+                yamlOutput.value = `# Home Assistant Service Call\naction: esphome.micro_esp_update_microbit_display\ndata:\n  current_val: "${val}"`;
             } else {
                 yamlOutput.value = `actions:\n  - sequence:\n      - action: esphome.micro_esp_update_microbit_display\n        data:\n          current_val: ${val}`;
             }
