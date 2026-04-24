@@ -76,7 +76,7 @@ All commands are newline-terminated (`\n`).
 
 ## Using the YAML Builder
 
-Use [mirocesp.rioli.app](https://mirocesp.rioli.app) to generate Home Assistant action YAML:
+Use [microesp.rioli.app](https://microesp.rioli.app) to generate Home Assistant action YAML:
 - Draw pixels on a 5x5 grid
 - Toggle between single command and sequence mode
 - Generate `MSG:` and `DISP:` payloads
