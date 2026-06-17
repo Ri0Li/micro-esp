@@ -1,8 +1,46 @@
-# Gitignore settings for ESPHome
-# This is an example and may include too much for your use-case.
-# You can modify this file to suit your needs.
-/.esphome/
-/secrets.yaml
+.esphome/
+build/
+*.bin
+*.elf
+*.map
+
+*.bak
+*.kicad_pcb-bak          
+*.sch-bak
+*-bak/
+_autosave-*
+*.kicad_prl
+*.lck
+*-backups/
+.history/
+
+*.erc
+*.drc
+*.rpt
+
+fp-info-cache
+*.net
+*.xml
+
+*.tmp
+*.log
+*.err
+*~
+*.bck
+*.sblock
+
+*.gcode
+*.gcode.gz
+.ipynb_checkpoints/
+
+.DS_Store
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+secrets.yaml
+.env
+*.env
 
 # wrangler files
 .wrangler
